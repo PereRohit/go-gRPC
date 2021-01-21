@@ -12,6 +12,32 @@ import (
 
 type calServer struct{}
 
+func (cs *calServer) FindMaximum(stream calculatepb.CalculatorService_FindMaximumServer) error {
+	fmt.Println("FindMaximum() requested")
+
+	max := int32(0)
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			log.Fatalf("Error while reading client stream: %v", err)
+		}
+
+		num := req.GetNumber()
+		if max < num {
+			max = num
+			err := stream.Send(&calculatepb.FindMaximumResponse{Maximum: max})
+			if err != nil {
+				log.Fatalf("Error while streaming data to client: %v\n", err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (cs *calServer) ComputeAverage(stream calculatepb.CalculatorService_ComputeAverageServer) error {
 	fmt.Println("ComputeAverage() requested")
 

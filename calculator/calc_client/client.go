@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"io"
 	"log"
+	"sync"
 )
 
 func main() {
@@ -23,6 +24,42 @@ func main() {
 	calculatePrimeNumberDecomposition(c)
 
 	calculateAverage(c)
+
+	calculateMaximum(c)
+}
+
+func calculateMaximum(c calculatepb.CalculatorServiceClient) {
+	fmt.Println("Calling remote FindMaximum bi-di streaming function")
+
+	stream, err := c.FindMaximum(context.Background())
+	if err != nil {
+		log.Fatalf("Error while calling FindMaximum: %v\n", err)
+	}
+
+	go func() {
+		numbers := [...]int32{43, 56, 7, 2, 45, 67, 9}
+		for _, num := range numbers {
+			stream.Send(&calculatepb.FindMaximumRequest{Number: num})
+		}
+		stream.CloseSend()
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				wg.Done()
+				return
+			}
+			if err != nil {
+				log.Fatalf("Error  while receiving stream from server: %v\n", err)
+			}
+			fmt.Println("New maximum", res.GetMaximum())
+		}
+	}()
+	wg.Wait()
 }
 
 func calculateAverage(c calculatepb.CalculatorServiceClient) {
