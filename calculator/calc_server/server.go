@@ -11,6 +11,24 @@ import (
 
 type calServer struct{}
 
+func (cs *calServer) PrimeNumberDecomposition(req *calculatepb.PrimeNumberDecompositionRequest, stream calculatepb.CalculatorService_PrimeNumberDecompositionServer) error {
+	fmt.Printf("PrimeNumberDecomposition() requested with request: %v\n", req)
+
+	num := req.GetNumber()
+	div := int64(2)
+	for num > 1 {
+		if num%div == 0 {
+			stream.Send(&calculatepb.PrimeNumberDecompositionResponse{
+				Factor: div,
+			})
+			num /= div
+		} else {
+			div++
+		}
+	}
+	return nil
+}
+
 func (cs *calServer) Sum(ctx context.Context, req *calculatepb.CalcRequest) (*calculatepb.CalcResponse, error) {
 	fmt.Printf("Sum() requested with request: %v\n", req)
 	res := &calculatepb.CalcResponse{
