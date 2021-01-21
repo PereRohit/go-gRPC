@@ -5,11 +5,35 @@ import (
 	"fmt"
 	calculatepb "github.com/PereRohit/go-gRPC/calculator/calculatepb"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"net"
 )
 
 type calServer struct{}
+
+func (cs *calServer) ComputeAverage(stream calculatepb.CalculatorService_ComputeAverageServer) error {
+	fmt.Println("ComputeAverage() requested")
+
+	count := 0
+	sum := 0.0
+
+	for {
+		num, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&calculatepb.CalculateAverageResponse{
+				Response: sum / float64(count),
+			})
+		}
+		if err != nil {
+			log.Fatalf("Error while reading client stream: %v\n", err)
+		}
+		count++
+		sum += float64(num.GetNumber())
+	}
+
+	return nil
+}
 
 func (cs *calServer) PrimeNumberDecomposition(req *calculatepb.PrimeNumberDecompositionRequest, stream calculatepb.CalculatorService_PrimeNumberDecompositionServer) error {
 	fmt.Printf("PrimeNumberDecomposition() requested with request: %v\n", req)

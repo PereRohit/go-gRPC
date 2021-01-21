@@ -21,6 +21,30 @@ func main() {
 	calculateSum(c)
 
 	calculatePrimeNumberDecomposition(c)
+
+	calculateAverage(c)
+}
+
+func calculateAverage(c calculatepb.CalculatorServiceClient) {
+	fmt.Println("Calling remote ComputeAverage streaming function")
+
+	stream, err := c.ComputeAverage(context.Background())
+	if err != nil {
+		log.Fatalf("Error while calling ComputeAverage: %v\n", err)
+	}
+	numbers := [...]int32{4, 90, 3, 10, 56, 78}
+	for _, num := range numbers {
+		fmt.Println("Sending:", num)
+		stream.Send(&calculatepb.CalculateAverageRequest{
+			Number: num,
+		})
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("Error while reading response: %v\n", err)
+	}
+	fmt.Println(res.GetResponse())
 }
 
 func calculatePrimeNumberDecomposition(c calculatepb.CalculatorServiceClient) {

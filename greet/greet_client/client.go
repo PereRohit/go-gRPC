@@ -24,8 +24,50 @@ func main() {
 	// doUnary(c)
 
 	// Server streaming API call
-	doServerStreaming(c)
+	//doServerStreaming(c)
+
+	// Client Streaming
+	doClientStreaming(c)
 	//fmt.Printf("Created client: %f", c)
+}
+
+func doClientStreaming(c greetpb.GreetServiceClient) {
+	fmt.Println("Starting client streaming")
+
+	stream, err := c.LongGreet(context.Background())
+	if err != nil {
+		log.Fatalf("Couldn't call LongGreet: %v\n", err)
+	}
+
+	req := []*greetpb.LongGreetRequest{
+		&greetpb.LongGreetRequest{Greeting: &greetpb.Greeting{
+			FirstName: "Joe",
+			LastName:  "Saldana",
+		}},
+		&greetpb.LongGreetRequest{Greeting: &greetpb.Greeting{
+			FirstName: "John",
+			LastName:  "Doe",
+		}},
+		&greetpb.LongGreetRequest{Greeting: &greetpb.Greeting{
+			FirstName: "Rohit",
+			LastName:  "Sadhukhan",
+		}},
+		&greetpb.LongGreetRequest{Greeting: &greetpb.Greeting{
+			FirstName: "Jane",
+			LastName:  "Doe",
+		}},
+	}
+
+	for _, name := range req {
+		stream.Send(name)
+		fmt.Printf("Sending name: %v\n", name)
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("Error while receiving from server: %v\n", err)
+	}
+	fmt.Println("Combined names", res.GetResult())
 }
 
 func doServerStreaming(c greetpb.GreetServiceClient) {
