@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"io"
 	"log"
+	"sync"
 )
 
 func main() {
@@ -27,8 +28,69 @@ func main() {
 	//doServerStreaming(c)
 
 	// Client Streaming
-	doClientStreaming(c)
+	//doClientStreaming(c)
+
+	// Bi-directional streaming
+	doBiDiStreaming(c)
+
 	//fmt.Printf("Created client: %f", c)
+}
+
+func doBiDiStreaming(c greetpb.GreetServiceClient) {
+	fmt.Println("Starting bi-di streaming")
+
+	stream, err := c.GreetEveryone(context.Background())
+	if err != nil {
+		log.Fatalf("Error while starting stream: %v\n", err)
+	}
+
+	var wg sync.WaitGroup
+
+	// trigger goroutines to send data
+	go func() {
+		req := []*greetpb.GreetEveryoneRequest{
+			&greetpb.GreetEveryoneRequest{Greeting: &greetpb.Greeting{
+				FirstName: "Joe",
+				LastName:  "Salman",
+			}},
+			&greetpb.GreetEveryoneRequest{Greeting: &greetpb.Greeting{
+				FirstName: "John",
+				LastName:  "Doe",
+			}},
+			&greetpb.GreetEveryoneRequest{Greeting: &greetpb.Greeting{
+				FirstName: "Rohit",
+				LastName:  "Sadhukhan",
+			}},
+			&greetpb.GreetEveryoneRequest{Greeting: &greetpb.Greeting{
+				FirstName: "Jane",
+				LastName:  "Doe",
+			}},
+		}
+		for _, req := range req {
+			fmt.Println("Sending:", req)
+			stream.Send(req)
+		}
+
+		// close sending to server
+		stream.CloseSend()
+	}()
+
+	wg.Add(1)
+	// trigger goroutines to receive data
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				wg.Done()
+				return
+			}
+			if err != nil {
+				log.Fatalf("Error while receiving stream: %v\n", err)
+			}
+			fmt.Println("From server:", res.GetResult())
+		}
+	}()
+	wg.Wait()
 }
 
 func doClientStreaming(c greetpb.GreetServiceClient) {
@@ -42,7 +104,7 @@ func doClientStreaming(c greetpb.GreetServiceClient) {
 	req := []*greetpb.LongGreetRequest{
 		&greetpb.LongGreetRequest{Greeting: &greetpb.Greeting{
 			FirstName: "Joe",
-			LastName:  "Saldana",
+			LastName:  "Salman",
 		}},
 		&greetpb.LongGreetRequest{Greeting: &greetpb.Greeting{
 			FirstName: "John",
