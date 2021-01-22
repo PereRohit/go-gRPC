@@ -5,12 +5,27 @@ import (
 	"fmt"
 	calculatepb "github.com/PereRohit/go-gRPC/calculator/calculatepb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"log"
+	"math"
 	"net"
 )
 
 type calServer struct{}
+
+func (cs *calServer) SquareRoot(ctx context.Context, req *calculatepb.SquareRootRequest) (*calculatepb.SquareRootResponse, error) {
+	fmt.Println("SquareRoot() requested")
+
+	num := req.GetNumber()
+	if num < 0 {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Received a negative number: %v\n", num))
+	}
+	return &calculatepb.SquareRootResponse{
+		Root: math.Sqrt(num),
+	}, nil
+}
 
 func (cs *calServer) FindMaximum(stream calculatepb.CalculatorService_FindMaximumServer) error {
 	fmt.Println("FindMaximum() requested")

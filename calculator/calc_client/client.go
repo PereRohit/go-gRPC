@@ -5,6 +5,8 @@ import (
 	"fmt"
 	calculatepb "github.com/PereRohit/go-gRPC/calculator/calculatepb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"log"
 	"sync"
@@ -26,6 +28,37 @@ func main() {
 	calculateAverage(c)
 
 	calculateMaximum(c)
+
+	calculateSquareRootWithError(c)
+}
+
+func calculateSquareRootWithError(c calculatepb.CalculatorServiceClient) {
+	fmt.Println("Calling remote SquareRoot function")
+
+	req := &calculatepb.SquareRootRequest{
+		// Number: 23.45, // gRPC error not triggered
+		Number: -45, // triggers the gRPC error
+	}
+
+	res, err := c.SquareRoot(context.Background(), req)
+	if err != nil {
+		// convert error to gRPC error having Message & Code
+		respErr, ok := status.FromError(err)
+		if ok { // states that a valid error was received from gRPC function
+			// actual error from gRPC
+			fmt.Println("Error Message:", respErr.Message(),
+				"Error code:", respErr.Code())
+			if respErr.Code() == codes.InvalidArgument {
+				fmt.Println("Negative number was sent")
+			}
+		} else {
+			// other framework error
+			log.Fatalf("Framework error: %v\n", err)
+		}
+	}
+
+	fmt.Println("Square root:", res.GetRoot())
+
 }
 
 func calculateMaximum(c calculatepb.CalculatorServiceClient) {
