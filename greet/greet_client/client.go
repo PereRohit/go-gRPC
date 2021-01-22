@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"github.com/PereRohit/go-gRPC/greet/greetpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"log"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -31,9 +34,42 @@ func main() {
 	//doClientStreaming(c)
 
 	// Bi-directional streaming
-	doBiDiStreaming(c)
+	//doBiDiStreaming(c)
+
+	// Unary With Deadline call
+	doUnaryWithDeadline(c)
 
 	//fmt.Printf("Created client: %f", c)
+}
+
+func doUnaryWithDeadline(c greetpb.GreetServiceClient) {
+	fmt.Println("Starting Unary Deadline rpc")
+
+	req := &greetpb.GreetWithDeadlineRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName: "Rohit",
+			LastName:  "Sadhukhan",
+		},
+	}
+
+	// Background context is the parent context & timeout is set on it
+	//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)   // 5 sec timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // 1 sec timeout
+	defer cancel()
+
+	res, err := c.GreetWithDeadline(ctx, req)
+	if err != nil {
+		statErr, ok := status.FromError(err)
+		if ok {
+			if statErr.Code() == codes.DeadlineExceeded {
+				fmt.Println("Timeout reached! Deadline exceeded:", statErr.Message())
+			} else {
+				log.Fatalf("Error while calling Unary Deadline function: %v\n", err)
+			}
+		}
+		return
+	}
+	fmt.Println(res.GetResult())
 }
 
 func doBiDiStreaming(c greetpb.GreetServiceClient) {
